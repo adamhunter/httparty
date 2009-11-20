@@ -102,6 +102,14 @@ describe HTTParty::Request do
         @request.send(:format_from_mimetype, ct).should == :json
       end
     end
+    
+    it 'should handle a custom mimetype' do
+      HTTParty::AllowedFormats.merge! 'application/atom+xml' => :atom
+      ["application/atom+xml", "application/atom+xml; charset=utf-8"].each do |ct|
+        @request.send(:format_from_mimetype, ct).should == :atom
+      end
+      HTTParty::AllowedFormats.delete 'application/atom+xml'
+    end
   end
 
   describe 'parsing responses' do
@@ -129,6 +137,11 @@ describe HTTParty::Request do
       response.initialize_http_header("key" => "value")
 
       @request.perform.headers.should == { "key" => ["value"] }
+    end
+    
+    it "should raise an error if given an unsupported format" do
+      @request.options[:format] = :foo
+      lambda { @request.send(:parse_response, 'some response body') }.should raise_error(HTTParty::UnsupportedFormat)
     end
     
     describe 'with non-200 responses' do

@@ -1,8 +1,8 @@
 require File.expand_path(File.join(File.dirname(__FILE__), 'spec_helper'))
 
-class CustomParser
-  def self.parse(body)
-    return {:sexy => true}
+class CustomParser < HTTParty::Parser
+  def json
+    {:sexy => false}
   end
 end
 
@@ -197,21 +197,47 @@ describe HTTParty do
   end
 
   describe "parser" do
-    before(:each) do
-      @parser = Proc.new{ |data| CustomParser.parse(data) }
-      @klass.parser @parser
-    end
+    describe "lambda" do
+      before(:each) do
+        @parser = lambda { |data, format| {:sexy => true} }
+        @klass.parser @parser
+      end
 
-    it "should set parser options" do
-      @klass.default_options[:parser].should == @parser
-    end
+      it "should set parser options" do
+        @klass.default_options[:parser].should == @parser
+      end
 
-    it "should be able parse response with custom parser" do
-      FakeWeb.register_uri(:get, 'http://twitter.com/statuses/public_timeline.xml', :body => 'tweets')
-      custom_parsed_response = @klass.get('http://twitter.com/statuses/public_timeline.xml')
-      custom_parsed_response[:sexy].should == true
+      it "should be able parse response with custom parser" do
+        FakeWeb.register_uri(:get, 'http://twitter.com/statuses/public_timeline.xml', :body => 'tweets')
+        custom_parsed_response = @klass.get('http://twitter.com/statuses/public_timeline.xml')
+        custom_parsed_response[:sexy].should == true
+      end
+    end
+    
+    describe "subclass of HTTParty::Parsers" do
+      before(:each) do
+        @parser = CustomParser
+        @klass.parser @parser
+      end
+
+      it "should set parser options" do
+        @klass.default_options[:parser].should == @parser
+      end
+
+      it "should be able parse response with custom parser" do
+        FakeWeb.register_uri(:get, 'http://twitter.com/statuses/public_timeline.json', :body => 'tweets', :content_type => 'text/json')
+        custom_parsed_response = @klass.get('http://twitter.com/statuses/public_timeline.json')
+        custom_parsed_response[:sexy].should == false
+      end
+      
+      it "should be able parse response with HTTParty default parser if not defined in a custom parser" do
+        FakeWeb.register_uri(:get, 'http://twitter.com/statuses/public_timeline.xml', :body => '<tweet>hi!</tweet>', :content_type => 'text/xml')
+        custom_parsed_response = @klass.get('http://twitter.com/statuses/public_timeline.xml')
+        custom_parsed_response['tweet'].should == 'hi!'
+      end
     end
   end
+
 
   describe "format" do
     it "should allow xml" do

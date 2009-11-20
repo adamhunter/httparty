@@ -9,6 +9,7 @@ dir = Pathname(__FILE__).dirname.expand_path
 
 require dir + 'httparty/module_inheritable_attributes'
 require dir + 'httparty/cookie_hash'
+require dir + 'httparty/parser'
 
 module HTTParty
 
@@ -114,7 +115,7 @@ module HTTParty
     #
     #   class Foo
     #     include HTTParty
-    #     parser Proc.new {|data| ...}
+    #     parser lambda {|data, format| ...}
     #   end
     def parser(customer_parser)
       default_options[:parser] = customer_parser
