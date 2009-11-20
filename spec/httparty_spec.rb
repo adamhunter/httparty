@@ -4,6 +4,10 @@ class CustomParser < HTTParty::Parser
   def json
     {:sexy => false}
   end
+  
+  def atom
+    {:sexy => :possibly}
+  end
 end
 
 describe HTTParty do
@@ -234,6 +238,14 @@ describe HTTParty do
         FakeWeb.register_uri(:get, 'http://twitter.com/statuses/public_timeline.xml', :body => '<tweet>hi!</tweet>', :content_type => 'text/xml')
         custom_parsed_response = @klass.get('http://twitter.com/statuses/public_timeline.xml')
         custom_parsed_response['tweet'].should == 'hi!'
+      end
+      
+      it "should be able parse response from a custom mimetype" do
+        allow_atom_format do        
+          FakeWeb.register_uri(:get, 'http://twitter.com/statuses/public_timeline.atom', :body => 'tweets', :content_type => 'application/atom+xml')
+          custom_parsed_response = @klass.get('http://twitter.com/statuses/public_timeline.atom')
+          custom_parsed_response[:sexy].should == :possibly
+        end
       end
     end
   end

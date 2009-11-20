@@ -22,3 +22,9 @@ def stub_http_response_with(filename)
 
   HTTParty::Request.should_receive(:new).and_return(http_request)
 end
+
+def allow_atom_format(&block)
+  HTTParty::AllowedFormats.merge! 'application/atom+xml' => :atom
+  block.call
+  HTTParty::AllowedFormats.delete 'application/atom+xml'
+end
