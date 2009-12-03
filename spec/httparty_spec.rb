@@ -268,6 +268,18 @@ describe HTTParty do
         @klass.put('/foo', :no_follow => true)
       end.should raise_error(HTTParty::RedirectionTooDeep)
     end
+
+    it "should fail with redirected HEAD" do
+      lambda do
+        @klass.head('/foo', :no_follow => true)
+      end.should raise_error(HTTParty::RedirectionTooDeep)
+    end
+
+    it "should fail with redirected OPTIONS" do
+      lambda do
+        @klass.options('/foo', :no_follow => true)
+      end.should raise_error(HTTParty::RedirectionTooDeep)
+    end
   end
 
   describe "with multiple class definitions" do
@@ -288,6 +300,27 @@ describe HTTParty do
     it "should not run over each others options" do
       @klass.default_options.should == { :base_uri => 'http://first.com', :default_params => { :one => 1 } }
       @additional_klass.default_options.should == { :base_uri => 'http://second.com', :default_params => { :two => 2 } }
+    end
+  end
+
+  describe "two child classes inheriting from one parent" do
+    before(:each) do
+      @parent = Class.new do
+        include HTTParty
+      end
+
+      @child1 = Class.new(@parent)
+      @child2 = Class.new(@parent)
+    end
+
+    it "does not modify each others inherited attributes" do
+      @child1.default_params :joe => "alive"
+      @child2.default_params :joe => "dead"
+
+      @child1.default_options.should == { :default_params => {:joe => "alive"} }
+      @child2.default_options.should == { :default_params => {:joe => "dead"} }
+
+      @parent.default_options.should == { }
     end
   end
 
@@ -341,6 +374,32 @@ describe HTTParty do
       stub_http_response_with('empty.xml')
       result = HTTParty.get('http://foobar.com')
       result.should == nil
+    end
+
+    it "should accept http URIs" do
+      stub_http_response_with('google.html')
+      lambda do
+        HTTParty.get('http://google.com')
+      end.should_not raise_error(HTTParty::UnsupportedURIScheme)
+    end
+
+    it "should accept https URIs" do
+      stub_http_response_with('google.html')
+      lambda do
+        HTTParty.get('https://google.com')
+      end.should_not raise_error(HTTParty::UnsupportedURIScheme)
+    end
+
+    it "should raise an ArgumentError on URIs that are not http or https" do
+      lambda do
+        HTTParty.get("file:///there_is_no_party_on/my/filesystem")
+      end.should raise_error(HTTParty::UnsupportedURIScheme)
+    end
+
+    it "should raise an InvalidURIError on URIs that can't be parsed at all" do
+      lambda do
+        HTTParty.get("It's the one that says 'Bad URI'")
+      end.should raise_error(URI::InvalidURIError)
     end
   end
 end

@@ -1,8 +1,10 @@
 require 'uri'
 
 module HTTParty
+
   class Request #:nodoc:
-    SupportedHTTPMethods = [Net::HTTP::Get, Net::HTTP::Post, Net::HTTP::Put, Net::HTTP::Delete]
+    SupportedHTTPMethods = [Net::HTTP::Get, Net::HTTP::Post, Net::HTTP::Put, Net::HTTP::Delete, Net::HTTP::Head, Net::HTTP::Options]
+    SupportedURISchemes  = [URI::HTTP, URI::HTTPS]
 
     attr_accessor :http_method, :path, :options
 
@@ -28,6 +30,10 @@ module HTTParty
         new_uri.query = query_string(new_uri)
       end
 
+      unless SupportedURISchemes.include? new_uri.class
+        raise UnsupportedURIScheme, "'#{new_uri}' Must be HTTP or HTTPS"
+      end
+
       new_uri
     end
 
@@ -45,13 +51,26 @@ module HTTParty
 
       def http
         http = Net::HTTP.new(uri.host, uri.port, options[:http_proxyaddr], options[:http_proxyport])
-        http.use_ssl = (uri.port == 443)
-        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        http.use_ssl = ssl_implied?
+
         if options[:timeout] && options[:timeout].is_a?(Integer)
           http.open_timeout = options[:timeout]
           http.read_timeout = options[:timeout]
         end
+
+        if options[:pem] && http.use_ssl?
+          http.cert = OpenSSL::X509::Certificate.new(options[:pem])
+          http.key = OpenSSL::PKey::RSA.new(options[:pem])
+          http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+        else
+          http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        end
+
         http
+      end
+
+      def ssl_implied?
+        uri.port == 443 || uri.instance_of?(URI::HTTPS)
       end
 
       def body
@@ -148,7 +167,7 @@ module HTTParty
 
       def validate
         raise HTTParty::RedirectionTooDeep, 'HTTP redirects too deep' if options[:limit].to_i <= 0
-        raise ArgumentError, 'only get, post, put and delete methods are supported' unless SupportedHTTPMethods.include?(http_method)
+        raise ArgumentError, 'only get, post, put, delete, head, and options methods are supported' unless SupportedHTTPMethods.include?(http_method)
         raise ArgumentError, ':headers must be a hash' if options[:headers] && !options[:headers].is_a?(Hash)
         raise ArgumentError, ':basic_auth must be a hash' if options[:basic_auth] && !options[:basic_auth].is_a?(Hash)
         raise ArgumentError, ':query must be hash if using HTTP Post' if post? && !options[:query].nil? && !options[:query].is_a?(Hash)
@@ -159,3 +178,4 @@ module HTTParty
       end
   end
 end
+

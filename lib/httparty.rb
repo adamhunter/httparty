@@ -98,6 +98,16 @@ module HTTParty
       default_options[:format] = f
     end
 
+    # Allows setting a PEM file to be used
+    #
+    #   class Foo
+    #     include HTTParty
+    #     pem File.read('/home/user/my.pem')
+    #   end
+    def pem(pem_contents)
+      default_options[:pem] = pem_contents
+    end
+
     # Allows setting a custom parser for the response.
     #
     #   class Foo
@@ -148,6 +158,14 @@ module HTTParty
       perform_request Net::HTTP::Delete, path, options
     end
 
+    def head(path, options={})
+      perform_request Net::HTTP::Head, path, options
+    end
+
+    def options(path, options={})
+      perform_request Net::HTTP::Options, path, options
+    end
+
     def default_options #:nodoc:
       @default_options
     end
@@ -196,9 +214,19 @@ module HTTParty
   def self.delete(*args)
     Basement.delete(*args)
   end
+
+  def self.head(*args)
+    Basement.head(*args)
+  end
+
+  def self.options(*args)
+    Basement.options(*args)
+  end
+
 end
 
 require dir + 'httparty/core_extensions'
 require dir + 'httparty/exceptions'
 require dir + 'httparty/request'
 require dir + 'httparty/response'
+
