@@ -1,15 +1,5 @@
 require File.expand_path(File.join(File.dirname(__FILE__), 'spec_helper'))
 
-class CustomParser < HTTParty::Parser
-  def json
-    {:sexy => false}
-  end
-  
-  def atom
-    {:sexy => :possibly}
-  end
-end
-
 describe HTTParty do
   before(:each) do
     @klass = Class.new
@@ -200,53 +190,20 @@ describe HTTParty do
     end
   end
 
-  describe "parser" do
-    describe "lambda" do
-      before(:each) do
-        @parser = lambda { |data, format| {:sexy => true} }
-        @klass.parser @parser
-      end
-
-      it "should set parser options" do
-        @klass.default_options[:parser].should == @parser
-      end
-
-      it "should be able parse response with custom parser" do
-        FakeWeb.register_uri(:get, 'http://twitter.com/statuses/public_timeline.xml', :body => 'tweets')
-        custom_parsed_response = @klass.get('http://twitter.com/statuses/public_timeline.xml')
-        custom_parsed_response[:sexy].should == true
-      end
+  describe "lambda parser" do
+    before(:each) do
+      @parser = lambda { |data, format| {:sexy => true} }
+      @klass.parser @parser
     end
-    
-    describe "subclass of HTTParty::Parsers" do
-      before(:each) do
-        @parser = CustomParser
-        @klass.parser @parser
-      end
 
-      it "should set parser options" do
-        @klass.default_options[:parser].should == @parser
-      end
+    it "should set parser options" do
+      @klass.default_options[:parser].should == @parser
+    end
 
-      it "should be able parse response with custom parser" do
-        FakeWeb.register_uri(:get, 'http://twitter.com/statuses/public_timeline.json', :body => 'tweets', :content_type => 'text/json')
-        custom_parsed_response = @klass.get('http://twitter.com/statuses/public_timeline.json')
-        custom_parsed_response[:sexy].should == false
-      end
-      
-      it "should be able parse response with HTTParty default parser if not defined in a custom parser" do
-        FakeWeb.register_uri(:get, 'http://twitter.com/statuses/public_timeline.xml', :body => '<tweet>hi!</tweet>', :content_type => 'text/xml')
-        custom_parsed_response = @klass.get('http://twitter.com/statuses/public_timeline.xml')
-        custom_parsed_response['tweet'].should == 'hi!'
-      end
-      
-      it "should be able parse response from a custom mimetype" do
-        allow_atom_format do        
-          FakeWeb.register_uri(:get, 'http://twitter.com/statuses/public_timeline.atom', :body => 'tweets', :content_type => 'application/atom+xml')
-          custom_parsed_response = @klass.get('http://twitter.com/statuses/public_timeline.atom')
-          custom_parsed_response[:sexy].should == :possibly
-        end
-      end
+    it "should be able parse response with custom parser" do
+      FakeWeb.register_uri(:get, 'http://twitter.com/statuses/public_timeline.xml', :body => 'tweets')
+      custom_parsed_response = @klass.get('http://twitter.com/statuses/public_timeline.xml')
+      custom_parsed_response[:sexy].should == true
     end
   end
 

@@ -13,19 +13,6 @@ require dir + 'httparty/parser'
 
 module HTTParty
 
-  AllowedFormats = {
-    'text/xml'               => :xml,
-    'application/xml'        => :xml,
-    'application/json'       => :json,
-    'text/json'              => :json,
-    'application/javascript' => :json,
-    'text/javascript'        => :json,
-    'text/html'              => :html,
-    'application/x-yaml'     => :yaml,
-    'text/yaml'              => :yaml,
-    'text/plain'             => :plain
-  } unless defined?(AllowedFormats)
-
   def self.included(base)
     base.extend ClassMethods
     base.send :include, HTTParty::ModuleInheritableAttributes
@@ -107,7 +94,7 @@ module HTTParty
     #     format :json
     #   end
     def format(f)
-      raise UnsupportedFormat, "Must be one of: #{AllowedFormats.values.map { |v| v.to_s }.uniq.sort.join(', ')}" unless AllowedFormats.value?(f)
+      raise UnsupportedFormat, "Must be one of: #{HTTParty::Parser::Base.allowed_formats.values.map { |v| v.to_s }.uniq.sort.join(', ')}" unless HTTParty::Parser::Base.allowed_formats.value?(f)
       default_options[:format] = f
     end
 

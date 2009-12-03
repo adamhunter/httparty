@@ -12,7 +12,7 @@ module HTTParty
       self.options = {
         :limit => o.delete(:no_follow) ? 0 : 5,
         :default_params => {},
-        :parser => HTTParty::Parser
+        :parser => HTTParty::Parser::Base
       }.merge(o)
     end
 
@@ -130,12 +130,20 @@ module HTTParty
         options[:headers] ||= {}
         options[:headers]['Cookie'] = cookies_hash.to_cookie_string
       end
+      
+      def allowed_formats
+        if options[:parser].include? HTTParty::Parser
+          options[:parser].allowed_formats
+        else
+          HTTParty::Parser::Base.allowed_formats
+        end   
+      end
 
       # Uses the HTTP Content-Type header to determine the format of the response
       # It compares the MIME type returned to the types stored in the AllowedFormats hash
       def format_from_mimetype(mimetype)
         return nil if mimetype.nil?
-        AllowedFormats.each { |k, v| return v if mimetype.include?(k) }
+        allowed_formats.each { |k, v| return v if mimetype.include?(k) }
       end
 
       def validate

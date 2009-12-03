@@ -104,11 +104,11 @@ describe HTTParty::Request do
     end
     
     it 'should handle a custom mimetype' do
-      allow_atom_format do
-        ["application/atom+xml", "application/atom+xml; charset=utf-8"].each do |ct|
-          @request.send(:format_from_mimetype, ct).should == :atom
-        end
+      @request.options[:parser].allowed_formats.merge! "application/atom+xml" => :atom
+      ["application/atom+xml", "application/atom+xml; charset=utf-8"].each do |ct|
+        @request.send(:format_from_mimetype, ct).should == :atom
       end
+      @request.options[:parser].allowed_formats.delete "application/atom+xml"
     end
   end
 
